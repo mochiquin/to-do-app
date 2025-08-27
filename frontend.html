@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办事项 - 前后端连通演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5f7;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+        }
+
+        .todo-list {
+            margin-top: 30px;
+        }
+
+        .todo-item {
+            background: white;
+            border: 2px solid #e1e5f7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .todo-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .todo-item.completed {
+            opacity: 0.7;
+            border-color: #00b894;
+        }
+
+        .todo-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .todo-title.completed {
+            text-decoration: line-through;
+            color: #666;
+        }
+
+        .todo-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .todo-meta {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 15px;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .api-info {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #0c5460;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e1e5f7;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 待办事项应用</h1>
+            <p>演示前后端如何连通</p>
+        </div>
+
+        <!-- API 连接状态 -->
+        <div id="connectionStatus" class="status">
+            <div class="spinner"></div>
+            正在连接后端服务器...
+        </div>
+
+        <!-- API 信息说明 -->
+        <div class="api-info">
+            <strong>🔗 前后端连通原理：</strong><br>
+            1. 前端通过 <code>fetch()</code> 发送 HTTP 请求到后端 API<br>
+            2. 后端 Flask 服务器处理请求，操作数据库<br>
+            3. 后端返回 JSON 数据给前端<br>
+            4. 前端接收数据并更新界面<br>
+            <strong>后端地址：</strong> <code id="apiUrl">http://127.0.0.1:5000/api</code>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">总计</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completedCount">0</div>
+                <div class="stat-label">已完成</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingCount">0</div>
+                <div class="stat-label">待完成</div>
+            </div>
+        </div>
+
+        <!-- 添加待办事项表单 -->
+        <div class="form-section">
+            <h3>📝 添加新待办事项</h3>
+            <div class="form-group">
+                <label for="todoTitle">标题</label>
+                <input type="text" id="todoTitle" placeholder="输入待办事项标题..." maxlength="200">
+            </div>
+            <div class="form-group">
+                <label for="todoDescription">描述（可选）</label>
+                <textarea id="todoDescription" rows="3" placeholder="详细描述..."></textarea>
+            </div>
+            <button class="btn" onclick="createTodo()">
+                ➕ 添加待办事项
+            </button>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div style="margin-bottom: 20px;">
+            <button class="btn" onclick="fetchTodos()">🔄 刷新列表</button>
+            <button class="btn success" onclick="testConnection()">🔧 测试连接</button>
+            <button class="btn danger" onclick="clearAllCompleted()">🗑️ 清除已完成</button>
+        </div>
+
+        <!-- 待办事项列表 -->
+        <div class="todo-list">
+            <h3>📋 待办事项列表</h3>
+            <div id="todoContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    加载中...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🌐 API 基础配置
+        const API_BASE = 'http://127.0.0.1:5000/api';
+        let todos = [];
+
+        // 🚀 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🌟 前端应用启动');
+            testConnection();
+        });
+
+        // 🔧 测试后端连接
+        async function testConnection() {
+            console.log('🔍 测试后端连接...');
+            updateStatus('正在测试连接...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/todos`);
+                console.log('📡 收到响应:', response.status);
+                
+                if (response.ok) {
+                    updateStatus('✅ 后端连接成功！', 'success');
+                    fetchTodos();
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                console.error('❌ 连接失败:', error);
+                updateStatus(`❌ 后端连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 📊 更新连接状态显示
+        function updateStatus(message, type) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.innerHTML = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        // 📥 获取所有待办事项
+        async function fetchTodos() {
+            console.log('📥 获取待办事项列表');
+            
+            try {
+                const response = await fetch(`${API_BASE}/todos`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                todos = await response.json();
+                console.log('📋 获取到', todos.length, '个待办事项');
+                
+                renderTodos();
+                updateStats();
+                
+            } catch (error) {
+                console.error('❌ 获取待办事项失败:', error);
+                document.getElementById('todoContainer').innerHTML = 
+                    `<div class="status error">获取数据失败: ${error.message}</div>`;
+            }
+        }
+
+        // ➕ 创建新待办事项
+        async function createTodo() {
+            const title = document.getElementById('todoTitle').value.trim();
+            const description = document.getElementById('todoDescription').value.trim();
+            
+            if (!title) {
+                alert('请输入标题！');
+                return;
+            }
+
+            console.log('➕ 创建待办事项:', title);
+            
+            try {
+                const response = await fetch(`${API_BASE}/todos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const newTodo = await response.json();
+                console.log('✅ 创建成功:', newTodo);
+                
+                // 清空表单
+                document.getElementById('todoTitle').value = '';
+                document.getElementById('todoDescription').value = '';
+                
+                // 刷新列表
+                fetchTodos();
+                
+            } catch (error) {
+                console.error('❌ 创建失败:', error);
+                alert(`创建失败: ${error.message}`);
+            }
+        }
+
+        // 🔄 切换完成状态
+        async function toggleTodo(id, completed) {
+            console.log('🔄 切换待办事项状态:', id, '→', !completed);
+            
+            try {
+                const response = await fetch(`${API_BASE}/todos/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        completed: !completed
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                console.log('✅ 状态更新成功');
+                fetchTodos();
+                
+            } catch (error) {
+                console.error('❌ 更新失败:', error);
+                alert(`更新失败: ${error.message}`);
+            }
+        }
+
+        // 🗑️ 删除待办事项
+        async function deleteTodo(id, title) {
+            if (!confirm(`确定要删除 "${title}" 吗？`)) {
+                return;
+            }
+
+            console.log('🗑️ 删除待办事项:', id);
+            
+            try {
+                const response = await fetch(`${API_BASE}/todos/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                console.log('✅ 删除成功');
+                fetchTodos();
+                
+            } catch (error) {
+                console.error('❌ 删除失败:', error);
+                alert(`删除失败: ${error.message}`);
+            }
+        }
+
+        // 🧹 清除所有已完成的待办事项
+        async function clearAllCompleted() {
+            const completedTodos = todos.filter(todo => todo.completed);
+            
+            if (completedTodos.length === 0) {
+                alert('没有已完成的待办事项');
+                return;
+            }
+            
+            if (!confirm(`确定要删除 ${completedTodos.length} 个已完成的待办事项吗？`)) {
+                return;
+            }
+            
+            console.log('🧹 批量删除已完成的待办事项');
+            
+            for (const todo of completedTodos) {
+                try {
+                    await fetch(`${API_BASE}/todos/${todo.id}`, {
+                        method: 'DELETE'
+                    });
+                } catch (error) {
+                    console.error('删除失败:', todo.title, error);
+                }
+            }
+            
+            fetchTodos();
+        }
+
+        // 🎨 渲染待办事项列表
+        function renderTodos() {
+            const container = document.getElementById('todoContainer');
+            
+            if (todos.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <h3>📝 还没有待办事项</h3>
+                        <p>添加你的第一个待办事项吧！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按创建时间排序，未完成的在前
+            const sortedTodos = [...todos].sort((a, b) => {
+                if (a.completed !== b.completed) {
+                    return a.completed ? 1 : -1;
+                }
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
+            
+            container.innerHTML = sortedTodos.map(todo => `
+                <div class="todo-item ${todo.completed ? 'completed' : ''}">
+                    <div class="todo-title ${todo.completed ? 'completed' : ''}">${todo.title}</div>
+                    ${todo.description ? `<div class="todo-description">${todo.description}</div>` : ''}
+                    <div class="todo-meta">
+                        📅 创建于: ${new Date(todo.created_at).toLocaleString('zh-CN')} | 
+                        ID: ${todo.id} | 
+                        状态: ${todo.completed ? '✅ 已完成' : '⏳ 待完成'}
+                    </div>
+                    <div class="todo-actions">
+                        <button class="btn ${todo.completed ? '' : 'success'}" 
+                                onclick="toggleTodo(${todo.id}, ${todo.completed})">
+                            ${todo.completed ? '↩️ 标记未完成' : '✅ 标记完成'}
+                        </button>
+                        <button class="btn danger" onclick="deleteTodo(${todo.id}, '${todo.title}')">
+                            🗑️ 删除
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 📊 更新统计信息
+        function updateStats() {
+            const total = todos.length;
+            const completed = todos.filter(todo => todo.completed).length;
+            const pending = total - completed;
+            
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('completedCount').textContent = completed;
+            document.getElementById('pendingCount').textContent = pending;
+        }
+
+        // ⌨️ 快捷键支持
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                createTodo();
+            }
+        });
+
+        // 💡 显示快捷键提示
+        document.getElementById('todoTitle').addEventListener('focus', function() {
+            if (!this.getAttribute('data-tip-shown')) {
+                alert('💡 小贴士：按 Ctrl + Enter 快速添加待办事项！');
+                this.setAttribute('data-tip-shown', 'true');
+            }
+        });
+    </script>
+</body>
+</html>
